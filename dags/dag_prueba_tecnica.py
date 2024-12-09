@@ -16,6 +16,8 @@ fecha_actual = datetime.now().strftime("%Y%m%d")
 cluster_name = "cluster-d649"  # Nombre del clúster de Dataproc
 project_id = "etlprueba"  # ID de tu proyecto en Google Cloud
 region = "us-central1"  # Región de tu clúster (ajusta según tu región)
+bucket = f"almacenamiento_etl_prueba/archivos_reporte/{fecha_actual}"
+bucket_aws = "almacenamiento_aws"
 
 # Define el DAG
 default_args = {
@@ -32,4 +34,12 @@ with models.DAG(
     start_date=start_date,
     tags=['prueba_tecnica'],
 ) as dag:
-    pass
+
+    descargar_aws_reporte = SSHOperator(
+        task_id='descarga_reporte_aws',
+        ssh_conn_id='your_ssh_connection_id',  # Configura tu conexión SSH en Airflow
+        command=f'aws s3 cp s3://{bucket_aws}/aws_facturacion_{fecha_actual}.csv gs://{bucket}/archivos_reporte/{fecha_actual}/'
+    )
+
+
+descargar_aws_reporte
