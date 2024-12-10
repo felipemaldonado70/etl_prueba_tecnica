@@ -44,5 +44,19 @@ if __name__ == "__main__":
             col("importe_en_usd").alias("total"),
         )
 
+        oci_data = oci_data.select(
+            col("account_id").alias("id_cuenta"),
+            col("fecha").alias("fecha_reporte"),
+            "servicio",
+            "total",
+        )
+
+        gcp_data = gcp_data.select(
+            col("account_id").alias("id_cuenta"),
+            col("fecha").alias("fecha_reporte"),
+            "servicio",
+            col("importe_en_usd").alias("total"),
+        )
+
     except Exception as e:
         raise f"Error inesperado {e}"
