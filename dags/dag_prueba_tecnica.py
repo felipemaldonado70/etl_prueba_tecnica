@@ -19,6 +19,15 @@ region = "us-central1"  # Región de tu clúster (ajusta según tu región)
 bucket = f"almacenamiento_etl_prueba/archivos_reporte/{fecha_actual}"
 bucket_aws = "pipe-maldonado-0"
 bucket_oci = "almacenamiento_oci"
+bucket_gcp = "reportes_fact"
+
+job = {
+    'placement': {'cluster_name': cluster_name},
+    'pySparkJob': {
+        'mainPythonFileUri': 'gs://almacenamiento_etl_prueb/jobs/my_pyspark_job.py',
+        'args': ['gs://your-bucket/input-data.csv', 'gs://your-bucket/output-data.csv']
+    }
+}
 
 # Define el DAG
 default_args = {
@@ -39,7 +48,7 @@ with models.DAG(
     descargar_aws_reporte = SSHOperator(
         task_id='descarga_reporte_aws',
         ssh_conn_id='your_ssh_connection_id',
-        command=f'aws s3 cp s3://{bucket_aws}/aws_facturacion_{fecha_actual}.csv gs://{bucket}/archivos_reporte/{fecha_actual}/'
+        command=f'aws s3 cp s3://{bucket_aws}/aws_facturacion_{fecha_actual}.csv gs://{bucket}/'
     )
 
     descargar_oci_reporte = SSHOperator(
@@ -51,7 +60,19 @@ with models.DAG(
     descargar_gcp_reporte = SSHOperator(
         task_id='descarga_reporte_gcp',
         ssh_conn_id='your_ssh_connection_id',  # Configura tu conexión SSH en Airflow
-        command='gcloud storage cp gs://your-bucket/gcp_costos_mensuales_YYYYMM.csv gs://your-bucket/archivos_reporte/20241209/',
+        command=f'gcloud storage cp gs://{bucket_gcp}/{fecha_actual}/gcp_costos_mensuales_{fecha_actual}.csv gs://{bucket}',
     )
 
-[descargar_aws_reporte >> descargar_oci_reporte >> descargar_gcp_reporte]
+
+    dataproc_task = DataprocSubmitJobOperator(
+        task_id='job_transformacion_carga_reportes',
+        job=job,
+        region=region,
+        project_id=project_id,
+        dag=dag
+    )
+
+
+descargar_aws_reporte >> dataproc_task
+descargar_oci_reporte >> dataproc_task
+descargar_gcp_reporte >> dataproc_task
