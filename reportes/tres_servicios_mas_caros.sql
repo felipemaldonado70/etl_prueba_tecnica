@@ -1,9 +1,11 @@
 SELECT 
-    mes,
+    nube,
+    servicio,
     SUM(total) AS costo_total
 FROM 
     reporte_costos_proveedores_cloud
 GROUP BY 
-    mes
+    nube, servicio
 ORDER BY 
-    mes;
+    costo_total DESC
+LIMIT 3;
