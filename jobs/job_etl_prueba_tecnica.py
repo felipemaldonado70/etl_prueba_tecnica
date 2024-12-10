@@ -50,6 +50,9 @@ if __name__ == "__main__":
                 "Google Cloud Storage (GCS)": {"categoria": "Almacenamiento"},
             },
         }
+        PROJECT_ID = "etlprueba"
+        DATASET_ID = "facturacion"
+        TABLE_NAME = "reporte_costos_proveedores_cloud"
 
         # leer archivos
         aws_data = spark.read.option("header", "true").csv(
@@ -121,6 +124,13 @@ if __name__ == "__main__":
             "categoria",
             when(col("categoria").isNull(), lit("NA")).otherwise(col("categoria")),
         )
+
+        # carga a tabla en bigquery
+        df.write.format('bigquery') \
+            .option('table', f'{PROJECT_ID}.{DATASET_ID}.{TABLE_NAME}') \
+            .option('writeDisposition', 'WRITE_APPEND') \
+            .save()
+
 
     except Exception as e:
         raise f"Error inesperado {e}"
