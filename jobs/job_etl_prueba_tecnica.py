@@ -37,7 +37,9 @@ if __name__ == "__main__":
                 "Oracle Cloud Compute": {"categoria": "Cómputo"},
                 "Oracle Cloud Virtual Cloud Network (VCN)": {"categoria": "Red"},
                 "Oracle Cloud Monitoring and Logging": {"categoria": "Monitoreo"},
-                "Oracle Cloud Data Integration": {"categoria": "Procesamiento de Datos"},
+                "Oracle Cloud Data Integration": {
+                    "categoria": "Procesamiento de Datos"
+                },
                 "Oracle Cloud Object Storage": {"categoria": "Almacenamiento"},
             },
             "GCP": {
@@ -46,7 +48,7 @@ if __name__ == "__main__":
                 "Google Cloud Operations Suite": {"categoria": "Monitoreo"},
                 "Google Cloud DataProc": {"categoria": "Procesamiento de Datos"},
                 "Google Cloud Storage (GCS)": {"categoria": "Almacenamiento"},
-            }
+            },
         }
 
         # leer archivos
@@ -61,36 +63,45 @@ if __name__ == "__main__":
         )
 
         # seleccion de columnas
-        aws_data = aws_data.select(
-            col("account_id").alias("id_cuenta"),
-            col("fecha").alias("fecha_reporte"),
-            "servicio",
-            col("importe_en_usd").alias("total"),
-        ).withColumn("total_ARS",lit(0)).\
-            withColumn("nube", lit("AWS"))
+        aws_data = (
+            aws_data.select(
+                col("account_id").alias("id_cuenta"),
+                col("fecha").alias("fecha_reporte"),
+                "servicio",
+                col("importe_en_usd").alias("total"),
+            )
+            .withColumn("total_ARS", lit(0))
+            .withColumn("nube", lit("AWS"))
+        )
 
-        oci_data = oci_data.select(
-            col("account_id").alias("id_cuenta"),
-            col("fecha").alias("fecha_reporte"),
-            "servicio",
-            "total",
-        ).withColumn("total_ARS",col("total")).\
-            withColumn("nube", lit("Oracle"))
+        oci_data = (
+            oci_data.select(
+                col("account_id").alias("id_cuenta"),
+                col("fecha").alias("fecha_reporte"),
+                "servicio",
+                "total",
+            )
+            .withColumn("total_ARS", col("total"))
+            .withColumn("nube", lit("Oracle"))
+        )
 
-        gcp_data = gcp_data.select(
-            col("account_id").alias("id_cuenta"),
-            col("fecha").alias("fecha_reporte"),
-            "servicio",
-            col("importe_en_usd").alias("total"),
-        ).withColumn("total_ARS",lit(0)).\
-            withColumn("nube", lit("GCP"))
+        gcp_data = (
+            gcp_data.select(
+                col("account_id").alias("id_cuenta"),
+                col("fecha").alias("fecha_reporte"),
+                "servicio",
+                col("importe_en_usd").alias("total"),
+            )
+            .withColumn("total_ARS", lit(0))
+            .withColumn("nube", lit("GCP"))
+        )
 
-        # transformar 
-        oci_data = oci_data.withColumn("total",col("total") / 500)
+        # transformar
+        oci_data = oci_data.withColumn("total", col("total") / 500)
 
         # union dfs
         df = aws_data.union(oci_data).union(gcp_data)
-        
+
         # creacion campo categoria de acuerdo al diccionario
         servicio_categoria = []
         for cloud, services in SERVICIOS_CLOUD.items():
@@ -98,13 +109,18 @@ if __name__ == "__main__":
                 servicio_categoria.append((service, details["categoria"]))
 
         # creacion dataframe con las categorías
-        categoria_df = spark.createDataFrame(servicio_categoria, ["servicio", "categoria"])
+        categoria_df = spark.createDataFrame(
+            servicio_categoria, ["servicio", "categoria"]
+        )
 
         # unir el dataframe de facturación con el dataframe de categorías
         df = df.join(categoria_df, on="servicio", how="left")
 
         # Si no se encuentra la categoría, asignar "NA"
-        df = df.withColumn("categoria", when(col("categoria").isNull(), lit("NA")).otherwise(col("categoria")))
+        df = df.withColumn(
+            "categoria",
+            when(col("categoria").isNull(), lit("NA")).otherwise(col("categoria")),
+        )
 
     except Exception as e:
         raise f"Error inesperado {e}"
