@@ -24,8 +24,8 @@ bucket_gcp = "reportes_fact"
 job = {
     'placement': {'cluster_name': cluster_name},
     'pySparkJob': {
-        'mainPythonFileUri': 'gs://almacenamiento_etl_prueb/jobs/my_pyspark_job.py',
-        'args': ['gs://your-bucket/input-data.csv', 'gs://your-bucket/output-data.csv']
+        'mainPythonFileUri': 'gs://almacenamiento_etl_prueba/jobs/job_etl_prueba_tecnica.py',
+        'args': ['']
     }
 }
 
