@@ -9,6 +9,7 @@ _docformat_ = "Google"
 
 
 from datetime import datetime
+from datetime import timedelta
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 from pyspark.sql.functions import to_date
@@ -54,6 +55,10 @@ if __name__ == "__main__":
         DATASET_ID = "facturacion"
         TABLE_NAME = "reporte_costos_proveedores_cloud"
 
+        # Fecha límite: 15 días antes de la fecha actual
+        FECHA_LIMITE = datetime.now() - timedelta(days=15)
+        FECHA_LIMITE_STR = FECHA_LIMITE.strftime('%Y%m%d')
+
         # leer archivos
         aws_data = spark.read.option("header", "true").csv(
             f"{RUTA_ARCHIVOS}/aws_facturacion_{FECHA_ACTUAL}.csv"
@@ -75,7 +80,8 @@ if __name__ == "__main__":
             )
             .withColumn("total_ARS", lit(0))
             .withColumn("nube", lit("AWS"))
-        )
+            .withColumn("fecha", to_date(col("fecha"), "yyyyMMdd"))
+        ).filter(col("fecha") >= FECHA_LIMITE)
 
         oci_data = (
             oci_data.select(
@@ -86,7 +92,8 @@ if __name__ == "__main__":
             )
             .withColumn("total_ARS", col("total"))
             .withColumn("nube", lit("Oracle"))
-        )
+            .withColumn("fecha", to_date(col("fecha"), "yyyyMMdd"))
+        ).filter(col("fecha") >= FECHA_LIMITE)
 
         gcp_data = (
             gcp_data.select(
@@ -97,7 +104,8 @@ if __name__ == "__main__":
             )
             .withColumn("total_ARS", lit(0))
             .withColumn("nube", lit("GCP"))
-        )
+            .withColumn("fecha", to_date(col("fecha"), "yyyyMMdd"))
+        ).filter(col("fecha") >= FECHA_LIMITE)
 
         # transformar
         oci_data = oci_data.withColumn("total", col("total") / 500)
